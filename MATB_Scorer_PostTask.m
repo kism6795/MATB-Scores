@@ -101,12 +101,12 @@ for s = 5:nSubs
         end
 
         % Import generated XML file
-        load(fullfile(data_path,subject_folder,'events.mat'));
+        load(fullfile(data_path, trial_folder, 'events.mat'));
         events = events2; clear events2
     
         % Import MATB Data
         [rate,sysmon,track,comm,resman,matb] = getMATBdata( ...
-            fullfile(data_path, subject_folder) ...
+            fullfile(data_path, trial_folder) ...
             );
 
         % determine current time
@@ -133,6 +133,31 @@ for s = 5:nSubs
         adj_sub_scores(i,:,s) = sub_penalties(i,:,s)...
                                 ./max_sub_penalties(i,:,s);
         adjMATBscores(s,i) =  penalty_total(i)/penalty_max(i);
+
+        % Account for divide by zero erros
+        for j = 1:4
+            if max_sub_penalties(i,j,s) == 0 && sub_penalties(i,j,s) == 0
+                adj_sub_scores(i,j,s) = 0;
+                fprintf('\tNo possible penalties on trial %d, task %d\n', ...
+                    i, j);
+            end
+        end
+        if penalty_max(i) == 0 && penalty_total(i) == 0
+            adjMATBscores(s,i) = 0;
+            fprintf('\tNo possible penalties on trial %d\n', i);
+        end
+
+        % Check for remaining NaNs
+        if any(isnan(adj_sub_scores(i,:,s)))
+            disp(sub_penalties(i,:,s));
+            disp(max_sub_penalties(i,:,s));
+        end
+
+        % Check for remaining NaNs
+        if isnan(adjMATBscores(s,i))
+            disp(penalty_max(i));
+            disp(penalty_total(i));
+        end
 
         % save last datapoint for score calculation
         last_datum = current_datum;
